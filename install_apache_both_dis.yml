@@ -5,27 +5,22 @@
   become: true
   tasks:
 
-  - name: install apache package
+  - name: install apache and php package
     apt:
-      name: apache2
+      name: 
+        apache2
+        libapache2-mod-php
       state: latest
+      update_cache: yes
     when: ansible_distribution == "Ubuntu"
 
-  - name: add php package
-    apt:
-      name: libapache2-mod-php
-      state: latest
-    when: ansible_distribution == "Ubuntu"
-
-  - name: install apache package
+  - name: install apache and php package
     yum:
-      name: httpd
+      name: 
+        httpd
+        php
       state: latest
+      update_cache: yes
     when: ansible_distribution == "CentOS"
 
-  - name: add php package
-    yum:
-      name: php
-      state: latest
-    when: ansible_distribution == "CentOS"
 
