@@ -17,6 +17,23 @@
         update_cache: yes
     when: ansible_distribution == "Ubuntu"
 
+- hosts: workstation
+  bacome: true
+    tasks:
+
+   - name: install unzip
+     package: 
+      name: unzip
+
+   - name: install terraform
+     unarchive:
+     src:
+     dest: /usr/local/bin
+     remote_src: yes
+     mode: 0755
+     ownder: root
+     group: root  
+
 - hosts: web_servers
   become: true
   tasks:
