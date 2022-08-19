@@ -7,8 +7,8 @@
   - name: install update (CentOS)
     tags: always
     yum:
-          update_only: yes
-          update_cache: yes
+     update_only: yes
+     update_cache: yes
     when: ansible_distribution == "CentOS"
 
   - name: install update (CentOS)
@@ -18,28 +18,29 @@
     when: ansible_distribution == "Ubuntu"
 
 - hosts: workstation
-  bacome: true
-    tasks:
+  become: true
+  tasks:
 
    - name: install unzip
      package: 
       name: unzip
 
    - name: install terraform
+     become: yes
      unarchive:
-     src:
-     dest: /usr/local/bin
-     remote_src: yes
-     mode: 0755
-     ownder: root
-     group: root  
+      src: "https://releases.hashicorp.com/terraform/1.2.7/terraform_1.2.7_linux_amd64.zip"
+      dest: "/usr/local/bin"
+      remote_src: yes
+      mode: 0755
+      owner: root
+      group: root  
 
 - hosts: web_servers
   become: true
   tasks:
 
   - name: install apache and php package
-    tags: apache, apache2, ubuntu
+    tags: apache,apache2,ubuntu
     apt:
       name:
         apache2
@@ -48,20 +49,67 @@
       update_cache: yes
     when: ansible_distribution == "Ubuntu"
 
-  - name: install apache and php package
+  - name: install apache and php for centos
     tags: httpd
     yum:
-      name:
-        httpd
-        php
+      name: httpd,php
       state: latest
       update_cache: yes
     when: ansible_distribution == "CentOS"
 
+- hosts: all
+  become: true
+  tasks: 
+
+  - name: create simone user
+    tags: always
+    user: 
+      name: simone
+      groups: root
+
+  - name: add ssh key for simone
+    tags: always
+    authorized_key:
+      user: simone
+      key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCwE+kWdRoxQX0mklJ4ZcG7LZxmtW1c6Xzd73IywpsgEie7BWyUoZAzmy7EkGHFTQuL7TVkFUb1Mfk6BbJNbod6WcXYfn4dTj/ONAaYnc0Oz/8e76PlLOPlwWe8EvEBJlxcic85w3ppqy4VBBDXqD/Uh/GesxVY9ICUB57T+b+Bs4pBREF1DCf7WqS65V08xWFgbKM5vZRwRsKmZ/lg9pMonhymP6rRTX3Ic9w0kUdePtyfXStU7xLVDQPXHZMi+Czc7gMM8/ijkkza+rC1mne3W+DiBZNMrltI357IYqnWjxv2WpMFouhGhunz999/6kwbdErc7ycOPowtvdapAPMf root@localhost.localdomain"
+    
+  - name: add sudoers file for simone
+    tags: always
+    copy:
+      src: sudoers_simone
+      dest: /etc/sudoers.d/simone
+      owner: root
+      group: root
+      mode: 0440
+
+  - name: start httpd (CentOS)
+    tags: apache, centos, httpd
+    service:
+        name: httpd
+        state: started
+        enabled: yes
+    when: ansible_distribution == "CentOS"
+
+  - name: change e-mail address for admin
+    tags: apache,centos,httpd
+    lineinfile:
+      path: /etc/httpd/conf/httpd.conf
+      regexp: '^ServerAdmin'
+      line: ServerAdmin somebody@somewhere.net
+    when: ansible_distribution == "CentOS"
+    register: httpd
+
+  - name: restart httpd (CentOS)
+    tags: apache,centos,http
+    service:
+      name: httpd
+      state: restarted
+    when: httpd.changed
+
   - name: copy default html file for site
     tags: apache, apache2, httpd
     copy: 
-      src: default_site.html
+      src: files/default_site.html
       dest: /var/www/html/index.html
       owner: root
       group: root
